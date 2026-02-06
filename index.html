@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kitap Koleksiyonum | Kişisel Kitap Yöneticisi</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="assets/icons/book-favicon.png">
+</head>
+<body>
+    <!-- Header component buraya eklenecek -->
+    <div id="header-container"></div>
+
+    <main class="container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-content">
+                <div class="user-info">
+                    <div class="avatar">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                    <h3>Kitap Sever</h3>
+                    <p class="user-stats">
+                        <span id="total-books">0 kitap</span>
+                    </p>
+                </div>
+
+                <nav class="main-nav">
+                    <ul>
+                        <li><a href="#" class="nav-link active" data-page="home">
+                            <i class="fas fa-home"></i> Ana Sayfa
+                        </a></li>
+                        <li><a href="#" class="nav-link" data-page="statistics">
+                            <i class="fas fa-chart-bar"></i> İstatistikler
+                        </a></li>
+                        <li><a href="#" class="nav-link" data-page="add-book">
+                            <i class="fas fa-plus-circle"></i> Kitap Ekle
+                        </a></li>
+                    </ul>
+                </nav>
+
+                <div class="reading-goal">
+                    <h4>Aylık Okuma Hedefi</h4>
+                    <div class="goal-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progress-fill" style="width: 30%"></div>
+                        </div>
+                        <span id="progress-text">3/10 kitap</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <!-- Page content will be loaded here dynamically -->
+            <div id="page-container"></div>
+        </div>
+    </main>
+
+    <!-- Footer component buraya eklenecek -->
+    <div id="footer-container"></div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- JavaScript Files -->
+    <script type="module" src="interfaces/Book.js"></script>
+    <script type="module" src="utils/helpers.js"></script>
+    <script type="module" src="utils/storage.js"></script>
+    
+    <!-- Components -->
+    <script type="module" src="components/Header.js"></script>
+    <script type="module" src="components/Footer.js"></script>
+    <script type="module" src="components/BookForm.js"></script>
+    <script type="module" src="components/BookList.js"></script>
+    <script type="module" src="components/BookItem.js"></script>
+    
+    <!-- Pages -->
+    <script type="module" src="pages/HomePage.js"></script>
+    <script type="module" src="pages/StatisticsPage.js"></script>
+    
+    <!-- Main App -->
+    <script type="module" src="main.js"></script>
+</body>
+</html>
