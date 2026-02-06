@@ -4,9 +4,9 @@ import storageManager from '../utils/storage.js';
 import Book from '../interfaces/Book.js';
 
 class HomePage {
-    constructor() {
+    constructor(params = {}) {
         this.currentFilters = {
-            status: 'all',
+            status: params.filter || 'all',
             genre: 'all',
             year: 'all',
             search: '',
@@ -16,19 +16,17 @@ class HomePage {
     }
 
     render() {
-        Helpers.setPageTitle('Ana Sayfa');
-        Helpers.setActiveNav('home');
-        
         this.books = storageManager.filterBooks(this.currentFilters);
+        const stats = storageManager.getStatistics();
         
         return `
-            <div class="page-header">
+            <div class="page-header animate-slide-up">
                 <h1>Kitap Koleksiyonum</h1>
                 <div class="page-actions">
-                    <button class="btn btn-primary" id="show-filters-btn">
+                    <button class="btn btn-secondary" id="show-filters-btn">
                         <i class="fas fa-filter"></i> Filtreler
                     </button>
-                    <button class="btn btn-success" id="add-book-home-btn">
+                    <button class="btn btn-primary" id="add-book-home-btn">
                         <i class="fas fa-plus"></i> Yeni Kitap
                     </button>
                 </div>
@@ -40,9 +38,9 @@ class HomePage {
                         <label class="filter-label">Durum</label>
                         <select class="filter-select" id="filter-status">
                             <option value="all">Tümü</option>
-                            <option value="toread">Okunacak</option>
-                            <option value="reading">Okunuyor</option>
-                            <option value="read">Okundu</option>
+                            <option value="toread" ${this.currentFilters.status === 'toread' ? 'selected' : ''}>Okunacak</option>
+                            <option value="reading" ${this.currentFilters.status === 'reading' ? 'selected' : ''}>Okunuyor</option>
+                            <option value="read" ${this.currentFilters.status === 'read' ? 'selected' : ''}>Okundu</option>
                         </select>
                     </div>
                     
@@ -51,7 +49,7 @@ class HomePage {
                         <select class="filter-select" id="filter-genre">
                             <option value="all">Tüm Türler</option>
                             ${Book.getGenres().map(genre => 
-                                `<option value="${genre}">${genre}</option>`
+                                `<option value="${genre}" ${this.currentFilters.genre === genre ? 'selected' : ''}>${genre}</option>`
                             ).join('')}
                         </select>
                     </div>
@@ -63,29 +61,37 @@ class HomePage {
                             ${this.getYearOptions()}
                         </select>
                     </div>
-                </div>
-                
-                <div class="filter-row">
-                    <div class="filter-group">
-                        <label class="filter-label">Ara</label>
-                        <input type="text" class="filter-input" id="filter-search" 
-                               placeholder="Kitap adı veya yazar ara...">
-                    </div>
                     
                     <div class="filter-group">
                         <label class="filter-label">Sırala</label>
                         <select class="filter-select" id="filter-sort">
-                            <option value="date">Eklenme Tarihi (Yeni)</option>
-                            <option value="title">Alfabetik (A-Z)</option>
-                            <option value="year">Yayın Yılı (Yeni)</option>
-                            <option value="rating">Puan (Yüksek)</option>
+                            <option value="date">Eklenme Tarihi</option>
+                            <option value="title">Alfabetik</option>
+                            <option value="year">Yayın Yılı</option>
+                            <option value="rating">Puan</option>
                         </select>
                     </div>
                 </div>
                 
+                <div class="filter-row">
+                    <div class="filter-group" style="grid-column: 1 / -1;">
+                        <label class="filter-label">Ara</label>
+                        <div style="position: relative;">
+                            <i class="fas fa-search" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-tertiary);"></i>
+                            <input type="text" class="filter-input" id="filter-search" 
+                                   placeholder="Kitap adı veya yazar ara..." 
+                                   value="${this.currentFilters.search}"
+                                   style="padding-left: 2.5rem;">
+                            <kbd style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); 
+                                        background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; 
+                                        font-size: 0.75rem; color: var(--text-tertiary);">Ctrl K</kbd>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="filter-actions">
-                    <button class="btn btn-secondary" id="clear-filters-btn">
-                        <i class="fas fa-times"></i> Temizle
+                    <button class="btn btn-ghost" id="clear-filters-btn">
+                        <i class="fas fa-undo"></i> Sıfırla
                     </button>
                     <button class="btn btn-primary" id="apply-filters-btn">
                         <i class="fas fa-check"></i> Uygula
@@ -93,55 +99,59 @@ class HomePage {
                 </div>
             </div>
 
-            <div class="stats-summary">
+            <div class="stats-summary animate-slide-up" style="animation-delay: 0.1s">
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-icon">
                             <i class="fas fa-book"></i>
                         </div>
-                        <div class="stat-value" id="total-books-count">${this.books.length}</div>
+                        <div class="stat-value">${stats.total}</div>
                         <div class="stat-label">Toplam Kitap</div>
                     </div>
                     
                     <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-check-circle" style="color: #4cc9f0;"></i>
+                        <div class="stat-icon" style="background: var(--success-light); color: var(--success-color);">
+                            <i class="fas fa-check-circle"></i>
                         </div>
-                        <div class="stat-value" id="read-books-count">
-                            ${this.books.filter(b => b.status === 'read').length}
-                        </div>
+                        <div class="stat-value" style="background: linear-gradient(135deg, var(--success-color), #059669); -webkit-background-clip: text;">${stats.read}</div>
                         <div class="stat-label">Okunan</div>
                     </div>
                     
                     <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-spinner" style="color: #f8961e;"></i>
+                        <div class="stat-icon" style="background: var(--warning-light); color: var(--warning-color);">
+                            <i class="fas fa-book-reader"></i>
                         </div>
-                        <div class="stat-value" id="reading-books-count">
-                            ${this.books.filter(b => b.status === 'reading').length}
-                        </div>
+                        <div class="stat-value" style="background: linear-gradient(135deg, var(--warning-color), #d97706); -webkit-background-clip: text;">${stats.reading}</div>
                         <div class="stat-label">Okunuyor</div>
                     </div>
                     
                     <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-clock" style="color: #adb5bd;"></i>
+                        <div class="stat-icon" style="background: var(--info-light); color: var(--info-color);">
+                            <i class="fas fa-bookmark"></i>
                         </div>
-                        <div class="stat-value" id="toread-books-count">
-                            ${this.books.filter(b => b.status === 'toread').length}
-                        </div>
+                        <div class="stat-value" style="background: linear-gradient(135deg, var(--info-color), #2563eb); -webkit-background-clip: text;">${stats.toread}</div>
                         <div class="stat-label">Okunacak</div>
                     </div>
                 </div>
             </div>
 
-            <div id="books-list-container">
+            <div id="books-list-container" class="animate-slide-up" style="animation-delay: 0.2s">
                 ${new BookList(this.books, this.currentFilters).render()}
             </div>
         `;
     }
 
     setupEventListeners() {
+        // Toggle filters
+        const filtersContainer = document.getElementById('filters-container');
+        document.getElementById('show-filters-btn')?.addEventListener('click', () => {
+            const isHidden = filtersContainer.style.display === 'none';
+            filtersContainer.style.display = isHidden ? 'block' : 'none';
+            if (isHidden) {
+                filtersContainer.classList.add('animate-slide-up');
+            }
+        });
+
         // Apply filters
         document.getElementById('apply-filters-btn')?.addEventListener('click', () => {
             this.applyFilters();
@@ -152,45 +162,32 @@ class HomePage {
             this.clearFilters();
         });
 
-        // Show/hide filters
-        document.getElementById('show-filters-btn')?.addEventListener('click', () => {
-            const container = document.getElementById('filters-container');
-            if (container) {
-                container.style.display = container.style.display === 'none' ? 'block' : 'none';
-            }
-        });
-
-        // Add book button
+        // Add book
         document.getElementById('add-book-home-btn')?.addEventListener('click', () => {
             window.dispatchEvent(new CustomEvent('pageChange', { detail: { page: 'add-book' } }));
         });
 
-        // Filter inputs
+        // Filter inputs - auto apply on change
         ['status', 'genre', 'year', 'sort'].forEach(filter => {
             const element = document.getElementById(`filter-${filter}`);
             if (element) {
-                element.value = this.currentFilters[filter];
                 element.addEventListener('change', () => {
                     this.currentFilters[filter] = element.value;
+                    this.applyFilters();
                 });
             }
         });
 
-        // Search input
+        // Search with debounce
         const searchInput = document.getElementById('filter-search');
+        let searchTimeout;
         if (searchInput) {
-            searchInput.value = this.currentFilters.search;
             searchInput.addEventListener('input', (e) => {
-                this.currentFilters.search = e.target.value;
-            });
-            
-            // Debounce search
-            let timeout;
-            searchInput.addEventListener('input', (e) => {
-                clearTimeout(timeout);
-                timeout = setTimeout(() => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    this.currentFilters.search = e.target.value;
                     this.applyFilters();
-                }, 500);
+                }, 300);
             });
         }
 
@@ -208,10 +205,30 @@ class HomePage {
     }
 
     applyFilters() {
+        // Update filters from inputs
+        ['status', 'genre', 'year', 'sort'].forEach(filter => {
+            const element = document.getElementById(`filter-${filter}`);
+            if (element) {
+                this.currentFilters[filter] = element.value;
+            }
+        });
+        
+        const searchInput = document.getElementById('filter-search');
+        if (searchInput) {
+            this.currentFilters.search = searchInput.value;
+        }
+        
         this.books = storageManager.filterBooks(this.currentFilters);
         this.updateBooksList();
-        this.updateStats();
-        Helpers.showToast('Filtreler uygulandı', 'success');
+        
+        // Update stats display
+        const stats = storageManager.getStatistics();
+        this.updateStatsDisplay(stats);
+        
+        if (this.currentFilters.search || this.currentFilters.status !== 'all' || 
+            this.currentFilters.genre !== 'all' || this.currentFilters.year !== 'all') {
+            Helpers.showToast(`${this.books.length} kitap bulundu`, 'info');
+        }
     }
 
     clearFilters() {
@@ -223,16 +240,17 @@ class HomePage {
             sort: 'date'
         };
         
-        // Reset filter inputs
-        ['status', 'genre', 'year', 'sort'].forEach(filter => {
+        // Reset inputs
+        ['status', 'genre', 'year'].forEach(filter => {
             const element = document.getElementById(`filter-${filter}`);
             if (element) element.value = 'all';
         });
         
+        document.getElementById('filter-sort').value = 'date';
         document.getElementById('filter-search').value = '';
         
         this.applyFilters();
-        Helpers.showToast('Filtreler temizlendi', 'info');
+        Helpers.showToast('Filtreler sıfırlandı', 'info');
     }
 
     updateBooksList() {
@@ -244,21 +262,36 @@ class HomePage {
         }
     }
 
-    updateStats() {
-        const stats = storageManager.getStatistics();
-        
-        ['total', 'read', 'reading', 'toread'].forEach(stat => {
-            const element = document.getElementById(`${stat}-books-count`);
-            if (element) {
-                element.textContent = stats[stat];
+    updateStatsDisplay(stats) {
+        const updateValue = (id, value) => {
+            const el = document.getElementById(id);
+            if (el) {
+                // Animate number change
+                const start = parseInt(el.textContent) || 0;
+                const end = value;
+                const duration = 500;
+                const startTime = performance.now();
+                
+                const animate = (currentTime) => {
+                    const elapsed = currentTime - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    const easeProgress = 1 - Math.pow(1 - progress, 3);
+                    const current = Math.round(start + (end - start) * easeProgress);
+                    el.textContent = current;
+                    
+                    if (progress < 1) {
+                        requestAnimationFrame(animate);
+                    }
+                };
+                
+                requestAnimationFrame(animate);
             }
-        });
+        };
         
-        // Update sidebar total
-        const sidebarTotal = document.getElementById('total-books');
-        if (sidebarTotal) {
-            sidebarTotal.textContent = `${stats.total} kitap`;
-        }
+        updateValue('total-books-count', stats.total);
+        updateValue('read-books-count', stats.read);
+        updateValue('reading-books-count', stats.reading);
+        updateValue('toread-books-count', stats.toread);
     }
 
     editBook(bookId) {
@@ -270,15 +303,56 @@ class HomePage {
     }
 
     deleteBook(bookId) {
-        if (confirm('Bu kitabı silmek istediğinize emin misiniz?')) {
+        // Custom confirm modal
+        const modalHTML = `
+            <div class="modal-overlay active" id="delete-confirm-modal">
+                <div class="modal" style="max-width: 400px;">
+                    <div class="modal-header">
+                        <h2 class="modal-title">Kitap Sil</h2>
+                        <button class="modal-close" data-modal="delete-confirm-modal">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body" style="text-align: center;">
+                        <div style="font-size: 3rem; color: var(--danger-color); margin-bottom: 1rem;">
+                            <i class="fas fa-exclamation-circle"></i>
+                        </div>
+                        <p>Bu kitabı silmek istediğinize emin misiniz?</p>
+                        <p style="color: var(--text-tertiary); font-size: 0.875rem; margin-top: 0.5rem;">
+                            Bu işlem geri alınamaz.
+                        </p>
+                    </div>
+                    <div class="modal-footer" style="justify-content: center;">
+                        <button class="btn btn-secondary" data-modal="delete-confirm-modal">İptal</button>
+                        <button class="btn btn-danger" id="confirm-delete-btn">
+                            <i class="fas fa-trash"></i> Sil
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+        // Close handlers
+        document.querySelectorAll('[data-modal="delete-confirm-modal"]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.getElementById('delete-confirm-modal')?.remove();
+            });
+        });
+        
+        // Confirm delete
+        document.getElementById('confirm-delete-btn')?.addEventListener('click', () => {
             const success = storageManager.deleteBook(bookId);
             if (success) {
-                this.applyFilters(); // Refresh list
                 Helpers.showToast('Kitap başarıyla silindi', 'success');
+                this.applyFilters();
+                window.app?.updateSidebarStats();
             } else {
                 Helpers.showToast('Kitap silinemedi', 'error');
             }
-        }
+            document.getElementById('delete-confirm-modal')?.remove();
+        });
     }
 
     changeBookStatus(bookId) {
@@ -288,21 +362,31 @@ class HomePage {
         if (bookIndex >= 0) {
             const book = books[bookIndex];
             const statuses = ['toread', 'reading', 'read'];
-            const currentIndex = statuses.indexOf(book.status);
-            const nextIndex = (currentIndex + 1) % statuses.length;
-            book.status = statuses[nextIndex];
-            book.updatedAt = new Date().toISOString();
-            
-            storageManager.saveBooks(books);
-            this.applyFilters(); // Refresh list
-            
             const statusLabels = {
                 'toread': 'Okunacak',
                 'reading': 'Okunuyor',
                 'read': 'Okundu'
             };
+            const statusIcons = {
+                'toread': 'bookmark',
+                'reading': 'book-reader',
+                'read': 'check-circle'
+            };
+            const currentIndex = statuses.indexOf(book.status);
+            const nextIndex = (currentIndex + 1) % statuses.length;
+            const newStatus = statuses[nextIndex];
             
-            Helpers.showToast(`Durum "${statusLabels[book.status]}" olarak güncellendi`, 'success');
+            book.status = newStatus;
+            book.updatedAt = new Date().toISOString();
+            
+            storageManager.saveBooks(books);
+            this.applyFilters();
+            window.app?.updateSidebarStats();
+            
+            Helpers.showToast(
+                `<i class="fas fa-${statusIcons[newStatus]}"></i> "${book.title}" - ${statusLabels[newStatus]} olarak işaretlendi`,
+                'success'
+            );
         }
     }
 
@@ -311,7 +395,8 @@ class HomePage {
         const years = [];
         
         for (let year = currentYear; year >= 1900; year--) {
-            years.push(`<option value="${year}">${year}</option>`);
+            const selected = this.currentFilters.year == year ? 'selected' : '';
+            years.push(`<option value="${year}" ${selected}>${year}</option>`);
         }
         
         return years.join('');

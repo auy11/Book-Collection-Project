@@ -10,32 +10,45 @@ class Header {
         const headerHTML = `
             <header class="header">
                 <div class="header-content">
-                    <a href="#" class="logo" id="home-link">
-                        <div class="logo-icon">
+                    <a href="#" class="header-brand" id="home-link">
+                        <div class="brand-icon">
                             <i class="fas fa-book-open"></i>
                         </div>
-                        <div class="logo-text">
-                            <h1>Kitap Koleksiyonum</h1>
-                            <p>Kişisel kitap yöneticiniz</p>
-                        </div>
+                        <h1>Kitap Koleksiyonum</h1>
                     </a>
                     
                     <div class="header-actions">
-                        <button class="btn btn-outline btn-small" id="export-btn">
-                            <i class="fas fa-download"></i> Dışa Aktar
+                        <button class="btn btn-outline btn-small" id="export-btn" title="Verileri Dışa Aktar">
+                            <i class="fas fa-download"></i>
+                            <span class="hide-mobile">Dışa Aktar</span>
                         </button>
                         <button class="btn btn-primary btn-small" id="add-book-btn">
-                            <i class="fas fa-plus"></i> Yeni Kitap
+                            <i class="fas fa-plus"></i>
+                            <span class="hide-mobile">Yeni Kitap</span>
                         </button>
-                        <button class="mobile-menu-btn" id="mobile-menu-btn">
+                        <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Menüyü Aç">
                             <i class="fas fa-bars"></i>
                         </button>
                     </div>
                 </div>
             </header>
+            
+            <style>
+                .hide-mobile {
+                    display: inline;
+                }
+                @media (max-width: 640px) {
+                    .hide-mobile {
+                        display: none;
+                    }
+                }
+            </style>
         `;
 
-        Helpers.appendTo('header-container', Helpers.createElement('div', '', headerHTML));
+        const container = document.getElementById('header-container');
+        if (container) {
+            container.innerHTML = headerHTML;
+        }
     }
 
     setupEventListeners() {
@@ -45,20 +58,14 @@ class Header {
             window.dispatchEvent(new CustomEvent('pageChange', { detail: { page: 'home' } }));
         });
 
-        // Add book button
+        // Add book
         document.getElementById('add-book-btn')?.addEventListener('click', () => {
             window.dispatchEvent(new CustomEvent('pageChange', { detail: { page: 'add-book' } }));
         });
 
-        // Export button
+        // Export
         document.getElementById('export-btn')?.addEventListener('click', () => {
             this.exportData();
-        });
-
-        // Mobile menu button
-        document.getElementById('mobile-menu-btn')?.addEventListener('click', () => {
-            const sidebar = document.querySelector('.sidebar');
-            sidebar?.classList.toggle('active');
         });
     }
 
@@ -76,11 +83,14 @@ class Header {
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
             
-            Helpers.showToast('Veriler başarıyla dışa aktarıldı', 'success');
+            Helpers.showToast('Veriler başarıyla dışa aktarıldı 💾', 'success');
         });
     }
 }
 
-// Header'ı başlat
-new Header();
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    new Header();
+});
+
 export default Header;

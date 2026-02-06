@@ -9,64 +9,242 @@ class BookCollectionApp {
     constructor() {
         this.currentPage = 'home';
         this.currentBook = null;
+        this.theme = localStorage.getItem('theme') || 'light';
         this.init();
     }
 
     init() {
+        // Set initial theme
+        this.applyTheme(this.theme);
+        
+        // Initialize demo data if empty
+        this.initializeDemoData();
+        
+        // Render initial UI
         this.renderSidebar();
         this.loadPage('home');
         this.setupGlobalEventListeners();
         this.updateSidebarStats();
+        
+        // Show welcome toast for first visit
+        if (!localStorage.getItem('visited')) {
+            setTimeout(() => {
+                Helpers.showToast('Kitap Koleksiyonuna Hoş Geldiniz! 📚', 'success', 5000);
+                localStorage.setItem('visited', 'true');
+            }, 1000);
+        }
+    }
+
+    initializeDemoData() {
+        // Check if books exist in localStorage
+        const existingBooks = localStorage.getItem('bookCollection');
+        
+        if (!existingBooks || JSON.parse(existingBooks).length === 0) {
+            // Add demo books
+            const demoBooks = [
+                {
+                    id: 'book_' + Date.now() + '_1',
+                    title: 'Suç ve Ceza',
+                    author: 'Fyodor Dostoyevski',
+                    year: 1866,
+                    genre: 'Roman',
+                    status: 'read',
+                    rating: 5,
+                    coverUrl: '',
+                    description: 'Raskolnikov\'un psikolojik çöküşünü anlatan başyapıt. Edebiyat tarihinin en önemli eserlerinden biri.',
+                    createdAt: new Date('2024-01-15').toISOString(),
+                    updatedAt: new Date('2024-01-20').toISOString()
+                },
+                {
+                    id: 'book_' + Date.now() + '_2',
+                    title: '1984',
+                    author: 'George Orwell',
+                    year: 1949,
+                    genre: 'Bilim Kurgu',
+                    status: 'read',
+                    rating: 4,
+                    coverUrl: '',
+                    description: 'Distopik bir gelecek tasviri. Büyük Birader her şeyi görüyor.',
+                    createdAt: new Date('2024-02-10').toISOString(),
+                    updatedAt: new Date('2024-02-15').toISOString()
+                },
+                {
+                    id: 'book_' + Date.now() + '_3',
+                    title: 'Sefiller',
+                    author: 'Victor Hugo',
+                    year: 1862,
+                    genre: 'Roman',
+                    status: 'reading',
+                    rating: 0,
+                    coverUrl: '',
+                    description: 'Jean Valjean\'ın hikayesi. Adalet, merhamet ve kurtuluş üzerine epik bir roman.',
+                    createdAt: new Date('2024-03-01').toISOString(),
+                    updatedAt: new Date('2024-03-01').toISOString()
+                },
+                {
+                    id: 'book_' + Date.now() + '_4',
+                    title: 'Küçük Prens',
+                    author: 'Antoine de Saint-Exupéry',
+                    year: 1943,
+                    genre: 'Çocuk',
+                    status: 'toread',
+                    rating: 0,
+                    coverUrl: '',
+                    description: 'Felsefi bir çocuk kitabı. Yetişkinler için masal, çocuklar için gerçek.',
+                    createdAt: new Date('2024-03-05').toISOString(),
+                    updatedAt: new Date('2024-03-05').toISOString()
+                },
+                {
+                    id: 'book_' + Date.now() + '_5',
+                    title: 'Yüzyıllık Yalnızlık',
+                    author: 'Gabriel García Márquez',
+                    year: 1967,
+                    genre: 'Roman',
+                    status: 'read',
+                    rating: 5,
+                    coverUrl: '',
+                    description: 'Buendía ailesinin yedi kuşağını anlatan büyülü gerçekçilik başyapıtı.',
+                    createdAt: new Date('2024-01-20').toISOString(),
+                    updatedAt: new Date('2024-02-01').toISOString()
+                },
+                {
+                    id: 'book_' + Date.now() + '_6',
+                    title: 'Dune',
+                    author: 'Frank Herbert',
+                    year: 1965,
+                    genre: 'Bilim Kurgu',
+                    status: 'toread',
+                    rating: 0,
+                    coverUrl: '',
+                    description: 'Çöl gezegeni Arrakis\'te geçen destansı bilim kurgu serisi.',
+                    createdAt: new Date('2024-03-10').toISOString(),
+                    updatedAt: new Date('2024-03-10').toISOString()
+                }
+            ];
+            
+            localStorage.setItem('bookCollection', JSON.stringify(demoBooks));
+            console.log('Demo kitaplar yüklendi:', demoBooks.length);
+        }
+    }
+
+    applyTheme(theme) {
+        this.theme = theme;
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+    }
+
+    toggleTheme() {
+        const newTheme = this.theme === 'light' ? 'dark' : 'light';
+        this.applyTheme(newTheme);
+        Helpers.showToast(`${newTheme === 'dark' ? 'Karanlık' : 'Aydınlık'} mod aktif`, 'info');
     }
 
     renderSidebar() {
         const settings = storageManager.loadUserSettings();
+        const stats = storageManager.getStatistics();
         
-        // Update progress
-        const progressFill = document.getElementById('progress-fill');
+        // Update progress circle
+        const progressCircle = document.getElementById('progress-circle');
         const progressText = document.getElementById('progress-text');
+        const goalPercentage = document.getElementById('goal-percentage');
         
-        if (progressFill && progressText) {
-            const stats = storageManager.getStatistics();
-            const progress = (stats.read / settings.readingGoal) * 100;
-            const clampedProgress = Math.min(progress, 100);
+        if (progressCircle && progressText && goalPercentage) {
+            const progress = Math.min((stats.read / settings.readingGoal) * 100, 100);
+            const circumference = 2 * Math.PI * 15.9155;
+            const offset = circumference - (progress / 100) * circumference;
             
-            progressFill.style.width = `${clampedProgress}%`;
+            progressCircle.style.strokeDasharray = `${circumference} ${circumference}`;
+            progressCircle.style.strokeDashoffset = offset;
+            
             progressText.textContent = `${stats.read}/${settings.readingGoal} kitap`;
+            goalPercentage.textContent = `${Math.round(progress)}%`;
         }
+        
+        // Update badges
+        this.updateBadges(stats);
+    }
+
+    updateBadges(stats) {
+        const badges = {
+            'home-badge': stats.total,
+            'read-badge': stats.read,
+            'reading-badge': stats.reading,
+            'toread-badge': stats.toread
+        };
+        
+        Object.entries(badges).forEach(([id, value]) => {
+            const badge = document.getElementById(id);
+            if (badge) {
+                badge.textContent = value;
+                badge.style.display = value > 0 ? 'flex' : 'none';
+            }
+        });
+    }
+
+    updateSidebarStats() {
+        const stats = storageManager.getStatistics();
+        
+        const sidebarTotal = document.getElementById('total-books-sidebar');
+        if (sidebarTotal) {
+            sidebarTotal.textContent = `${stats.total} kitap koleksiyonda`;
+        }
+        
+        this.renderSidebar();
     }
 
     loadPage(pageName, params = {}) {
-        this.currentPage = pageName;
+        this.showLoading();
         
-        switch (pageName) {
-            case 'home':
-                this.renderHomePage();
-                break;
-            case 'statistics':
-                this.renderStatisticsPage();
-                break;
-            case 'add-book':
-                this.renderAddBookPage();
-                break;
-            case 'edit-book':
-                this.renderEditBookPage(params.book);
-                break;
-            default:
-                this.renderHomePage();
-        }
+        setTimeout(() => {
+            this.currentPage = pageName;
+            
+            switch (pageName) {
+                case 'home':
+                    this.renderHomePage(params);
+                    break;
+                case 'statistics':
+                    this.renderStatisticsPage();
+                    break;
+                case 'add-book':
+                    this.renderAddBookPage();
+                    break;
+                case 'edit-book':
+                    this.renderEditBookPage(params.book);
+                    break;
+                default:
+                    this.renderHomePage();
+            }
+            
+            Helpers.setActiveNav(pageName);
+            this.hideLoading();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }, 150);
     }
 
-    renderHomePage() {
-        const homePage = new HomePage();
-        Helpers.loadPage(homePage.render());
+    showLoading() {
+        const overlay = document.getElementById('loading-overlay');
+        if (overlay) overlay.classList.add('active');
+    }
+
+    hideLoading() {
+        const overlay = document.getElementById('loading-overlay');
+        if (overlay) overlay.classList.remove('active');
+    }
+
+    renderHomePage(params = {}) {
+        const homePage = new HomePage(params);
+        const content = homePage.render();
+        Helpers.loadPage(content);
         homePage.setupEventListeners();
+        Helpers.setPageTitle('Ana Sayfa');
     }
 
     renderStatisticsPage() {
         const statsPage = new StatisticsPage();
-        Helpers.loadPage(statsPage.render());
+        const content = statsPage.render();
+        Helpers.loadPage(content);
         statsPage.setupEventListeners();
+        Helpers.setPageTitle('İstatistikler');
     }
 
     renderAddBookPage() {
@@ -91,10 +269,11 @@ class BookCollectionApp {
             () => this.loadPage('home')
         );
         
-        // Back button
         document.getElementById('back-to-home')?.addEventListener('click', () => {
             this.loadPage('home');
         });
+        
+        Helpers.setPageTitle('Yeni Kitap Ekle');
     }
 
     renderEditBookPage(book) {
@@ -119,10 +298,11 @@ class BookCollectionApp {
             () => this.loadPage('home')
         );
         
-        // Back button
         document.getElementById('back-to-home-edit')?.addEventListener('click', () => {
             this.loadPage('home');
         });
+        
+        Helpers.setPageTitle('Kitap Düzenle');
     }
 
     saveBook(formData) {
@@ -139,7 +319,7 @@ class BookCollectionApp {
         const success = storageManager.saveBook(book.toJSON());
         
         if (success) {
-            Helpers.showToast('Kitap başarıyla eklendi!', 'success');
+            Helpers.showToast('Kitap başarıyla eklendi! 🎉', 'success');
             this.loadPage('home');
             this.updateSidebarStats();
         } else {
@@ -161,8 +341,9 @@ class BookCollectionApp {
         const success = storageManager.saveBook(book.toJSON());
         
         if (success) {
-            Helpers.showToast('Kitap başarıyla güncellendi!', 'success');
+            Helpers.showToast('Kitap başarıyla güncellendi! ✨', 'success');
             this.loadPage('home');
+            this.updateSidebarStats();
         } else {
             Helpers.showToast('Kitap güncellenirken bir hata oluştu', 'error');
         }
@@ -170,12 +351,45 @@ class BookCollectionApp {
 
     setupGlobalEventListeners() {
         // Navigation links
-        document.querySelectorAll('.nav-link').forEach(link => {
+        document.querySelectorAll('.nav-link[data-page]').forEach(link => {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
-                const page = e.target.closest('.nav-link').dataset.page;
+                const page = e.currentTarget.dataset.page;
                 this.loadPage(page);
+                
+                document.getElementById('sidebar')?.classList.remove('active');
+                document.getElementById('sidebar-overlay')?.classList.remove('active');
             });
+        });
+
+        // Filter links
+        document.querySelectorAll('.filter-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const filter = e.currentTarget.dataset.filter;
+                this.loadPage('home', { filter });
+            });
+        });
+
+        // Theme toggle
+        document.getElementById('theme-toggle')?.addEventListener('click', () => {
+            this.toggleTheme();
+        });
+
+        // Mobile menu
+        document.getElementById('mobile-menu-btn')?.addEventListener('click', () => {
+            document.getElementById('sidebar')?.classList.add('active');
+            document.getElementById('sidebar-overlay')?.classList.add('active');
+        });
+
+        document.getElementById('sidebar-close')?.addEventListener('click', () => {
+            document.getElementById('sidebar')?.classList.remove('active');
+            document.getElementById('sidebar-overlay')?.classList.remove('active');
+        });
+
+        document.getElementById('sidebar-overlay')?.addEventListener('click', () => {
+            document.getElementById('sidebar')?.classList.remove('active');
+            document.getElementById('sidebar-overlay')?.classList.remove('active');
         });
 
         // Page change event
@@ -188,31 +402,33 @@ class BookCollectionApp {
             this.loadPage('edit-book', { book: e.detail.book });
         });
 
-        // Import/Export functionality
-        this.setupDataManagement();
-
-        // Mobile menu close on click outside
-        document.addEventListener('click', (e) => {
-            const sidebar = document.querySelector('.sidebar');
-            const mobileBtn = document.getElementById('mobile-menu-btn');
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                document.getElementById('filter-search')?.focus();
+            }
             
-            if (sidebar?.classList.contains('active') && 
-                !sidebar.contains(e.target) && 
-                !mobileBtn?.contains(e.target)) {
-                sidebar.classList.remove('active');
+            if (e.key === 'Escape') {
+                const modal = document.querySelector('.modal-overlay.active');
+                if (modal) {
+                    modal.classList.remove('active');
+                }
             }
         });
+
+        // Import/Export
+        this.setupDataManagement();
     }
 
     setupDataManagement() {
-        // Import button (hidden in UI but accessible)
-        const importBtn = document.createElement('input');
-        importBtn.type = 'file';
-        importBtn.accept = '.json';
-        importBtn.style.display = 'none';
-        importBtn.id = 'import-file-input';
+        const importInput = document.createElement('input');
+        importInput.type = 'file';
+        importInput.accept = '.json';
+        importInput.style.display = 'none';
+        importInput.id = 'import-file-input';
         
-        importBtn.addEventListener('change', (e) => {
+        importInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
@@ -228,37 +444,12 @@ class BookCollectionApp {
                 };
                 reader.readAsText(file);
             }
-            e.target.value = ''; // Reset input
+            e.target.value = '';
         });
         
-        document.body.appendChild(importBtn);
-
-        // Add import button to header
-        const headerActions = document.querySelector('.header-actions');
-        if (headerActions) {
-            const importButton = document.createElement('button');
-            importButton.className = 'btn btn-outline btn-small';
-            importButton.innerHTML = '<i class="fas fa-upload"></i> İçe Aktar';
-            importButton.addEventListener('click', () => {
-                document.getElementById('import-file-input').click();
-            });
-            headerActions.insertBefore(importButton, headerActions.firstChild);
-        }
+        document.body.appendChild(importInput);
     }
 
-    updateSidebarStats() {
-        const stats = storageManager.getStatistics();
-        const totalElement = document.getElementById('total-books');
-        
-        if (totalElement) {
-            totalElement.textContent = `${stats.total} kitap`;
-        }
-        
-        // Update progress
-        this.renderSidebar();
-    }
-
-    // Utility method to show book details
     showBookDetails(bookId) {
         const books = storageManager.loadBooks();
         const book = books.find(b => b.id === bookId);
@@ -275,93 +466,9 @@ class BookCollectionApp {
     }
 }
 
-// Initialize the app when DOM is loaded
+// Initialize
 document.addEventListener('DOMContentLoaded', () => {
-    new BookCollectionApp();
-    
-    // Add CSS for additional components
-    const additionalStyles = `
-        <style>
-            /* Book detail modal styles */
-            .book-detail-header {
-                display: flex;
-                gap: 2rem;
-                margin-bottom: 2rem;
-            }
-            
-            .book-detail-info {
-                flex: 1;
-            }
-            
-            .book-detail-info h3 {
-                margin-bottom: 1rem;
-                color: #3a0ca3;
-            }
-            
-            .book-detail-info p {
-                margin-bottom: 0.5rem;
-            }
-            
-            .status-badge {
-                display: inline-block;
-                padding: 0.25rem 0.75rem;
-                border-radius: 20px;
-                font-size: 0.9rem;
-                font-weight: 600;
-                color: white;
-            }
-            
-            .status-success { background: #4cc9f0; }
-            .status-warning { background: #f8961e; }
-            .status-secondary { background: #adb5bd; }
-            
-            .book-description-section {
-                margin-top: 2rem;
-                padding-top: 1rem;
-                border-top: 1px solid #e9ecef;
-            }
-            
-            .book-description-section h4 {
-                margin-bottom: 1rem;
-                color: #495057;
-            }
-            
-            .book-meta-info {
-                margin-top: 2rem;
-                padding-top: 1rem;
-                border-top: 1px solid #e9ecef;
-                color: #6c757d;
-                font-size: 0.9rem;
-            }
-            
-            /* Animation for page transitions */
-            @keyframes fadeIn {
-                from { opacity: 0; }
-                to { opacity: 1; }
-            }
-            
-            .main-content > div {
-                animation: fadeIn 0.3s ease;
-            }
-            
-            /* Responsive improvements */
-            @media (max-width: 768px) {
-                .book-detail-header {
-                    flex-direction: column;
-                    text-align: center;
-                }
-                
-                .book-detail-cover {
-                    margin: 0 auto;
-                }
-            }
-        </style>
-    `;
-    
-    if (!document.querySelector('#additional-styles')) {
-        document.head.insertAdjacentHTML('beforeend', additionalStyles);
-    }
+    window.app = new BookCollectionApp();
 });
 
-// Make app available globally for debugging
-window.BookCollectionApp = BookCollectionApp;
+export default BookCollectionApp;
