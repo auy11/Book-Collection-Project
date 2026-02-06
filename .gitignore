@@ -1,0 +1,96 @@
+# ===========================================
+# Kitap Koleksiyonu Yöneticisi - .gitignore
+# ===========================================
+
+# --------------------------------
+# IDE ve Editör Dosyaları
+# --------------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# --------------------------------
+# Node.js / NPM (Eğer kullanıyorsan)
+# --------------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# --------------------------------
+# Build / Dağıtım Dosyaları
+# --------------------------------
+dist/
+build/
+.out/
+.cache/
+
+# --------------------------------
+# Environment ve Config Dosyaları
+# --------------------------------
+.env
+.env.local
+.env.development
+.env.production
+config.js
+config.json
+.secrets
+
+# --------------------------------
+# API Anahtarları ve Hassas Bilgiler
+# --------------------------------
+api-keys.json
+firebase-config.json
+google-api-key.json
+
+# --------------------------------
+# Yedek ve Geçici Dosyalar
+# --------------------------------
+*.bak
+*.backup
+*.old
+*.tmp
+*.temp
+*.log
+
+# --------------------------------
+# Kullanıcı Üretilen İçerik
+# --------------------------------
+user-uploads/
+imported-data/
+exported-books/
+
+# --------------------------------
+# Test ve Coverage
+# --------------------------------
+coverage/
+.nyc_output/
+test-results/
+
+# --------------------------------
+# Netlify Build (Opsiyonel)
+# --------------------------------
+.netlify/
+
+# --------------------------------
+# Browser Cache ve Debug
+# --------------------------------
+debug.log
+browser-cache/
+
+# --------------------------------
+# Demo ve Test Verileri
+# --------------------------------
+demo-data.json
+test-books.json
+
+# --------------------------------
+# LocalStorage Backup (Opsiyonel)
+# --------------------------------
+localstorage-backup/
