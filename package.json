@@ -1,0 +1,34 @@
+{
+  "name": "book-collection-project",
+  "version": "1.0.0",
+  "description": "Modern JavaScript ile geliştirilmiş kitap koleksiyonu yönetim uygulaması - jQuery + Bootstrap 5",
+  "main": "Main.js",
+  "scripts": {
+    "dev": "npx http-server -p 3000 -o",
+    "build": "echo 'Build completed'",
+    "deploy": "netlify deploy --prod"
+  },
+  "keywords": [
+    "javascript",
+    "jquery",
+    "bootstrap5",
+    "crud",
+    "book-management",
+    "web-development",
+    "frontend"
+  ],
+  "author": "auy11",
+  "license": "MIT",
+  "dependencies": {
+    "jquery": "^3.7.1",
+    "bootstrap": "^5.3.2"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/auy11/Book-Collection-Project.git"
+  },
+  "homepage": "https://github.com/auy11/Book-Collection-Project#readme"
+}

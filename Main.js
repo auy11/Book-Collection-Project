@@ -1,474 +1,399 @@
-import Helpers from './utils/helpers.js';
-import storageManager from './utils/storage.js';
-import Book from './interfaces/Book.js';
-import BookForm from './components/BookForm.js';
-import HomePage from './pages/HomePage.js';
-import StatisticsPage from './pages/StatisticsPage.js';
+// Main.js - Book Collection Manager with jQuery
 
-class BookCollectionApp {
+import { BookManager } from './utils/BookManager.js';
+import { UIManager } from './utils/UIManager.js';
+import { FilterManager } from './utils/FilterManager.js';
+
+class App {
     constructor() {
-        this.currentPage = 'home';
-        this.currentBook = null;
-        this.theme = localStorage.getItem('theme') || 'light';
+        this.bookManager = new BookManager();
+        this.uiManager = new UIManager();
+        this.filterManager = new FilterManager();
+        this.currentEditId = null;
+        
         this.init();
     }
 
     init() {
-        // Set initial theme
-        this.applyTheme(this.theme);
+        // Wait for DOM to be ready using jQuery
+        $(document).ready(async () => {
+            this.setupEventListeners();
+            
+            // Load books (will auto-load samples if empty)
+            await this.initializeBooks();
+            
+            this.updateStats();
+            
+            console.log('📚 Kitap Koleksiyonu Yöneticisi başlatıldı!');
+            console.log('✅ jQuery versiyon:', $.fn.jquery);
+            console.log('✅ Bootstrap yüklendi');
+        });
+    }
+
+    async initializeBooks() {
+        // Wait for BookManager to finish loading
+        await new Promise(resolve => setTimeout(resolve, 200));
         
-        // Initialize demo data if empty
-        this.initializeDemoData();
+        // Reload books from storage after sample books are loaded
+        this.bookManager.books = this.bookManager.loadFromStorage();
         
-        // Render initial UI
-        this.renderSidebar();
-        this.loadPage('home');
-        this.setupGlobalEventListeners();
-        this.updateSidebarStats();
+        // Render books
+        this.loadBooks();
         
-        // Show welcome toast for first visit
-        if (!localStorage.getItem('visited')) {
-            setTimeout(() => {
-                Helpers.showToast('Kitap Koleksiyonuna Hoş Geldiniz! 📚', 'success', 5000);
-                localStorage.setItem('visited', 'true');
-            }, 1000);
+        console.log('📚 Toplam kitap sayısı:', this.bookManager.getAllBooks().length);
+    }
+
+    setupEventListeners() {
+        // Using jQuery for event handling
+        
+        // Save book button
+        $('#saveBookBtn').on('click', () => this.handleSaveBook());
+        
+        // Add new book button
+        $('#addNewBookBtn').on('click', () => this.resetForm());
+        
+        // Load sample books button
+        $('#loadSampleBooksBtn').on('click', async () => {
+            if (confirm('100 örnek kitap yüklensin mi? (Mevcut veriler silinecek)')) {
+                await this.loadSampleBooksManually();
+            }
+        });
+        
+        // Search input with jQuery
+        $('#searchInput').on('input', (e) => {
+            this.filterManager.setSearchTerm(e.target.value);
+            this.filterBooks();
+        });
+        
+        // Category filter
+        $('#categoryFilter').on('change', (e) => {
+            this.filterManager.setCategory(e.target.value);
+            this.filterBooks();
+        });
+        
+        // Status filter
+        $('#statusFilter').on('change', (e) => {
+            this.filterManager.setStatus(e.target.value);
+            this.filterBooks();
+        });
+        
+        // Modal events using Bootstrap + jQuery
+        $('#bookModal').on('show.bs.modal', () => {
+            if (!this.currentEditId) {
+                this.resetForm();
+            }
+        });
+        
+        $('#bookModal').on('hidden.bs.modal', () => {
+            this.resetForm();
+        });
+        
+        // Form validation using jQuery
+        $('#bookForm').on('submit', (e) => {
+            e.preventDefault();
+            this.handleSaveBook();
+        });
+    }
+
+    async loadSampleBooksManually() {
+        try {
+            // Show loading
+            this.uiManager.showLoading();
+            
+            // Try to load from JSON file first
+            const loaded = await this.bookManager.loadSampleBooks();
+            
+            if (loaded) {
+                // Reload UI
+                await this.initializeBooks();
+                this.updateStats();
+                this.showAlert('100 kitap başarıyla yüklendi!', 'success');
+            } else {
+                this.showAlert('Örnek kitaplar yüklenemedi!', 'error');
+            }
+        } catch (error) {
+            console.error('Error loading sample books:', error);
+            this.showAlert('Bir hata oluştu: ' + error.message, 'danger');
         }
     }
 
-    initializeDemoData() {
-        // Check if books exist in localStorage
-        const existingBooks = localStorage.getItem('bookCollection');
-        
-        if (!existingBooks || JSON.parse(existingBooks).length === 0) {
-            // Add demo books
-            const demoBooks = [
-                {
-                    id: 'book_' + Date.now() + '_1',
-                    title: 'Suç ve Ceza',
-                    author: 'Fyodor Dostoyevski',
-                    year: 1866,
-                    genre: 'Roman',
-                    status: 'read',
-                    rating: 5,
-                    coverUrl: '',
-                    description: 'Raskolnikov\'un psikolojik çöküşünü anlatan başyapıt. Edebiyat tarihinin en önemli eserlerinden biri.',
-                    createdAt: new Date('2024-01-15').toISOString(),
-                    updatedAt: new Date('2024-01-20').toISOString()
-                },
-                {
-                    id: 'book_' + Date.now() + '_2',
-                    title: '1984',
-                    author: 'George Orwell',
-                    year: 1949,
-                    genre: 'Bilim Kurgu',
-                    status: 'read',
-                    rating: 4,
-                    coverUrl: '',
-                    description: 'Distopik bir gelecek tasviri. Büyük Birader her şeyi görüyor.',
-                    createdAt: new Date('2024-02-10').toISOString(),
-                    updatedAt: new Date('2024-02-15').toISOString()
-                },
-                {
-                    id: 'book_' + Date.now() + '_3',
-                    title: 'Sefiller',
-                    author: 'Victor Hugo',
-                    year: 1862,
-                    genre: 'Roman',
-                    status: 'reading',
-                    rating: 0,
-                    coverUrl: '',
-                    description: 'Jean Valjean\'ın hikayesi. Adalet, merhamet ve kurtuluş üzerine epik bir roman.',
-                    createdAt: new Date('2024-03-01').toISOString(),
-                    updatedAt: new Date('2024-03-01').toISOString()
-                },
-                {
-                    id: 'book_' + Date.now() + '_4',
-                    title: 'Küçük Prens',
-                    author: 'Antoine de Saint-Exupéry',
-                    year: 1943,
-                    genre: 'Çocuk',
-                    status: 'toread',
-                    rating: 0,
-                    coverUrl: '',
-                    description: 'Felsefi bir çocuk kitabı. Yetişkinler için masal, çocuklar için gerçek.',
-                    createdAt: new Date('2024-03-05').toISOString(),
-                    updatedAt: new Date('2024-03-05').toISOString()
-                },
-                {
-                    id: 'book_' + Date.now() + '_5',
-                    title: 'Yüzyıllık Yalnızlık',
-                    author: 'Gabriel García Márquez',
-                    year: 1967,
-                    genre: 'Roman',
-                    status: 'read',
-                    rating: 5,
-                    coverUrl: '',
-                    description: 'Buendía ailesinin yedi kuşağını anlatan büyülü gerçekçilik başyapıtı.',
-                    createdAt: new Date('2024-01-20').toISOString(),
-                    updatedAt: new Date('2024-02-01').toISOString()
-                },
-                {
-                    id: 'book_' + Date.now() + '_6',
-                    title: 'Dune',
-                    author: 'Frank Herbert',
-                    year: 1965,
-                    genre: 'Bilim Kurgu',
-                    status: 'toread',
-                    rating: 0,
-                    coverUrl: '',
-                    description: 'Çöl gezegeni Arrakis\'te geçen destansı bilim kurgu serisi.',
-                    createdAt: new Date('2024-03-10').toISOString(),
-                    updatedAt: new Date('2024-03-10').toISOString()
-                }
-            ];
-            
-            localStorage.setItem('bookCollection', JSON.stringify(demoBooks));
-            console.log('Demo kitaplar yüklendi:', demoBooks.length);
-        }
-    }
-
-    applyTheme(theme) {
-        this.theme = theme;
-        document.documentElement.setAttribute('data-theme', theme);
-        localStorage.setItem('theme', theme);
-    }
-
-    toggleTheme() {
-        const newTheme = this.theme === 'light' ? 'dark' : 'light';
-        this.applyTheme(newTheme);
-        Helpers.showToast(`${newTheme === 'dark' ? 'Karanlık' : 'Aydınlık'} mod aktif`, 'info');
-    }
-
-    renderSidebar() {
-        const settings = storageManager.loadUserSettings();
-        const stats = storageManager.getStatistics();
-        
-        // Update progress circle
-        const progressCircle = document.getElementById('progress-circle');
-        const progressText = document.getElementById('progress-text');
-        const goalPercentage = document.getElementById('goal-percentage');
-        
-        if (progressCircle && progressText && goalPercentage) {
-            const progress = Math.min((stats.read / settings.readingGoal) * 100, 100);
-            const circumference = 2 * Math.PI * 15.9155;
-            const offset = circumference - (progress / 100) * circumference;
-            
-            progressCircle.style.strokeDasharray = `${circumference} ${circumference}`;
-            progressCircle.style.strokeDashoffset = offset;
-            
-            progressText.textContent = `${stats.read}/${settings.readingGoal} kitap`;
-            goalPercentage.textContent = `${Math.round(progress)}%`;
-        }
-        
-        // Update badges
-        this.updateBadges(stats);
-    }
-
-    updateBadges(stats) {
-        const badges = {
-            'home-badge': stats.total,
-            'read-badge': stats.read,
-            'reading-badge': stats.reading,
-            'toread-badge': stats.toread
+    handleSaveBook() {
+        // Get form values using jQuery
+        const bookData = {
+            title: $('#bookTitle').val().trim(),
+            author: $('#bookAuthor').val().trim(),
+            category: $('#bookCategory').val(),
+            pages: parseInt($('#bookPages').val()) || 0,
+            year: parseInt($('#bookYear').val()) || new Date().getFullYear(),
+            status: $('#bookStatus').val(),
+            rating: parseFloat($('#bookRating').val()) || 0,
+            notes: $('#bookNotes').val().trim()
         };
-        
-        Object.entries(badges).forEach(([id, value]) => {
-            const badge = document.getElementById(id);
-            if (badge) {
-                badge.textContent = value;
-                badge.style.display = value > 0 ? 'flex' : 'none';
+
+        // Validation
+        if (!bookData.title || !bookData.author || !bookData.category) {
+            // Using Bootstrap alerts with jQuery
+            this.showAlert('Lütfen zorunlu alanları doldurun!', 'warning');
+            return;
+        }
+
+        try {
+            if (this.currentEditId) {
+                // Update existing book
+                this.bookManager.updateBook(this.currentEditId, bookData);
+                this.showAlert('Kitap başarıyla güncellendi!', 'success');
+            } else {
+                // Add new book
+                this.bookManager.addBook(bookData);
+                this.showAlert('Kitap başarıyla eklendi!', 'success');
             }
-        });
+
+            // Close modal using jQuery and Bootstrap
+            const modal = bootstrap.Modal.getInstance($('#bookModal')[0]);
+            modal.hide();
+            
+            this.loadBooks();
+            this.updateStats();
+            this.resetForm();
+            
+        } catch (error) {
+            this.showAlert('Bir hata oluştu: ' + error.message, 'danger');
+        }
     }
 
-    updateSidebarStats() {
-        const stats = storageManager.getStatistics();
+    loadBooks() {
+        const books = this.bookManager.getAllBooks();
+        this.renderBooks(books);
+    }
+
+    filterBooks() {
+        const allBooks = this.bookManager.getAllBooks();
+        const filteredBooks = this.filterManager.filter(allBooks);
+        this.renderBooks(filteredBooks);
+    }
+
+    renderBooks(books) {
+        const container = $('#booksContainer');
+        const emptyState = $('#emptyState');
+
+        if (books.length === 0) {
+            container.hide();
+            emptyState.show();
+            return;
+        }
+
+        emptyState.hide();
+        container.show().empty();
+
+        books.forEach(book => {
+            const bookCard = this.createBookCard(book);
+            container.append(bookCard);
+        });
+
+        // Update total count with jQuery
+        $('#totalBooksCount').html(`
+            <i class="bi bi-collection"></i> Toplam: ${books.length} kitap
+        `);
+    }
+
+    createBookCard(book) {
+        const statusInfo = this.getStatusInfo(book.status);
+        const stars = this.generateStars(book.rating);
         
-        const sidebarTotal = document.getElementById('total-books-sidebar');
-        if (sidebarTotal) {
-            sidebarTotal.textContent = `${stats.total} kitap koleksiyonda`;
+        const card = $(`
+            <div class="col-lg-4 col-md-6 col-sm-12">
+                <div class="card book-card shadow">
+                    <div class="book-card-header">
+                        <span class="category-badge">${book.category}</span>
+                        <h5 class="book-title" title="${book.title}">${book.title}</h5>
+                        <div class="book-author">
+                            <i class="bi bi-person-fill"></i>
+                            ${book.author}
+                        </div>
+                    </div>
+                    <div class="book-card-body">
+                        <div class="book-info-item">
+                            <span class="book-info-label">Durum:</span>
+                            <span class="status-badge status-${book.status}">
+                                <i class="${statusInfo.icon}"></i>
+                                ${statusInfo.text}
+                            </span>
+                        </div>
+                        
+                        ${book.pages > 0 ? `
+                            <div class="book-info-item">
+                                <span class="book-info-label">Sayfa:</span>
+                                <span class="book-info-value">
+                                    <i class="bi bi-file-text"></i> ${book.pages}
+                                </span>
+                            </div>
+                        ` : ''}
+                        
+                        ${book.year ? `
+                            <div class="book-info-item">
+                                <span class="book-info-label">Yıl:</span>
+                                <span class="book-info-value">
+                                    <i class="bi bi-calendar"></i> ${book.year}
+                                </span>
+                            </div>
+                        ` : ''}
+                        
+                        ${book.rating > 0 ? `
+                            <div class="book-info-item">
+                                <span class="book-info-label">Puan:</span>
+                                <span class="rating-stars">${stars}</span>
+                            </div>
+                        ` : ''}
+                        
+                        ${book.notes ? `
+                            <div class="book-notes">
+                                <i class="bi bi-chat-left-quote"></i>
+                                ${book.notes}
+                            </div>
+                        ` : ''}
+                        
+                        <div class="book-actions">
+                            <button class="btn btn-sm btn-primary" data-action="edit" data-id="${book.id}">
+                                <i class="bi bi-pencil"></i> Düzenle
+                            </button>
+                            <button class="btn btn-sm btn-danger" data-action="delete" data-id="${book.id}">
+                                <i class="bi bi-trash"></i> Sil
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `);
+
+        // Event handlers using jQuery event delegation
+        card.find('[data-action="edit"]').on('click', () => this.handleEdit(book.id));
+        card.find('[data-action="delete"]').on('click', () => this.handleDelete(book.id));
+
+        return card;
+    }
+
+    getStatusInfo(status) {
+        const statusMap = {
+            'read': { text: 'Okundu', icon: 'bi bi-check-circle-fill' },
+            'reading': { text: 'Okunuyor', icon: 'bi bi-book-half' },
+            'unread': { text: 'Okunmadı', icon: 'bi bi-circle' }
+        };
+        return statusMap[status] || statusMap['unread'];
+    }
+
+    generateStars(rating) {
+        if (!rating) return '';
+        
+        let stars = '';
+        const fullStars = Math.floor(rating);
+        const hasHalfStar = rating % 1 !== 0;
+        
+        for (let i = 0; i < fullStars; i++) {
+            stars += '<i class="bi bi-star-fill"></i>';
         }
         
-        this.renderSidebar();
+        if (hasHalfStar) {
+            stars += '<i class="bi bi-star-half"></i>';
+        }
+        
+        const emptyStars = 5 - Math.ceil(rating);
+        for (let i = 0; i < emptyStars; i++) {
+            stars += '<i class="bi bi-star"></i>';
+        }
+        
+        return stars;
     }
 
-    loadPage(pageName, params = {}) {
-        this.showLoading();
+    handleEdit(bookId) {
+        const book = this.bookManager.getBookById(bookId);
+        if (!book) return;
+
+        this.currentEditId = bookId;
+
+        // Fill form using jQuery
+        $('#bookId').val(book.id);
+        $('#bookTitle').val(book.title);
+        $('#bookAuthor').val(book.author);
+        $('#bookCategory').val(book.category);
+        $('#bookPages').val(book.pages || '');
+        $('#bookYear').val(book.year || '');
+        $('#bookStatus').val(book.status);
+        $('#bookRating').val(book.rating || '');
+        $('#bookNotes').val(book.notes || '');
+
+        // Update modal title
+        $('#modalTitle').html('<i class="bi bi-pencil"></i> Kitap Düzenle');
+
+        // Show modal using Bootstrap
+        const modal = new bootstrap.Modal($('#bookModal')[0]);
+        modal.show();
+    }
+
+    handleDelete(bookId) {
+        const book = this.bookManager.getBookById(bookId);
+        if (!book) return;
+
+        // Confirmation using jQuery and SweetAlert-style
+        if (confirm(`"${book.title}" kitabını silmek istediğinize emin misiniz?`)) {
+            this.bookManager.deleteBook(bookId);
+            this.showAlert('Kitap başarıyla silindi!', 'info');
+            this.loadBooks();
+            this.updateStats();
+        }
+    }
+
+    resetForm() {
+        this.currentEditId = null;
         
+        // Reset form using jQuery
+        $('#bookForm')[0].reset();
+        $('#bookId').val('');
+        $('#modalTitle').html('<i class="bi bi-book"></i> Yeni Kitap Ekle');
+    }
+
+    updateStats() {
+        const books = this.bookManager.getAllBooks();
+        
+        const stats = {
+            total: books.length,
+            read: books.filter(b => b.status === 'read').length,
+            reading: books.filter(b => b.status === 'reading').length,
+            unread: books.filter(b => b.status === 'unread').length
+        };
+
+        // Update stats using jQuery
+        $('#readCount').text(stats.read);
+        $('#readingCount').text(stats.reading);
+        $('#unreadCount').text(stats.unread);
+        $('#totalBooksCount').html(`
+            <i class="bi bi-collection"></i> Toplam: ${stats.total} kitap
+        `);
+    }
+
+    showAlert(message, type = 'info') {
+        // Create Bootstrap alert using jQuery
+        const alert = $(`
+            <div class="alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3" 
+                 style="z-index: 9999; min-width: 300px;" role="alert">
+                <i class="bi bi-info-circle me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `);
+
+        $('body').append(alert);
+
+        // Auto dismiss after 3 seconds using jQuery
         setTimeout(() => {
-            this.currentPage = pageName;
-            
-            switch (pageName) {
-                case 'home':
-                    this.renderHomePage(params);
-                    break;
-                case 'statistics':
-                    this.renderStatisticsPage();
-                    break;
-                case 'add-book':
-                    this.renderAddBookPage();
-                    break;
-                case 'edit-book':
-                    this.renderEditBookPage(params.book);
-                    break;
-                default:
-                    this.renderHomePage();
-            }
-            
-            Helpers.setActiveNav(pageName);
-            this.hideLoading();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }, 150);
-    }
-
-    showLoading() {
-        const overlay = document.getElementById('loading-overlay');
-        if (overlay) overlay.classList.add('active');
-    }
-
-    hideLoading() {
-        const overlay = document.getElementById('loading-overlay');
-        if (overlay) overlay.classList.remove('active');
-    }
-
-    renderHomePage(params = {}) {
-        const homePage = new HomePage(params);
-        const content = homePage.render();
-        Helpers.loadPage(content);
-        homePage.setupEventListeners();
-        Helpers.setPageTitle('Ana Sayfa');
-    }
-
-    renderStatisticsPage() {
-        const statsPage = new StatisticsPage();
-        const content = statsPage.render();
-        Helpers.loadPage(content);
-        statsPage.setupEventListeners();
-        Helpers.setPageTitle('İstatistikler');
-    }
-
-    renderAddBookPage() {
-        const bookForm = new BookForm();
-        const formHTML = bookForm.render();
-        
-        const pageHTML = `
-            <div class="page-header">
-                <h1>Yeni Kitap Ekle</h1>
-                <div class="page-actions">
-                    <button class="btn btn-secondary" id="back-to-home">
-                        <i class="fas fa-arrow-left"></i> Geri Dön
-                    </button>
-                </div>
-            </div>
-            ${formHTML}
-        `;
-        
-        Helpers.loadPage(pageHTML);
-        bookForm.setupEventListeners(
-            (formData) => this.saveBook(formData),
-            () => this.loadPage('home')
-        );
-        
-        document.getElementById('back-to-home')?.addEventListener('click', () => {
-            this.loadPage('home');
-        });
-        
-        Helpers.setPageTitle('Yeni Kitap Ekle');
-    }
-
-    renderEditBookPage(book) {
-        const bookForm = new BookForm(book, true);
-        const formHTML = bookForm.render();
-        
-        const pageHTML = `
-            <div class="page-header">
-                <h1>Kitap Düzenle</h1>
-                <div class="page-actions">
-                    <button class="btn btn-secondary" id="back-to-home-edit">
-                        <i class="fas fa-arrow-left"></i> Geri Dön
-                    </button>
-                </div>
-            </div>
-            ${formHTML}
-        `;
-        
-        Helpers.loadPage(pageHTML);
-        bookForm.setupEventListeners(
-            (formData) => this.updateBook(formData),
-            () => this.loadPage('home')
-        );
-        
-        document.getElementById('back-to-home-edit')?.addEventListener('click', () => {
-            this.loadPage('home');
-        });
-        
-        Helpers.setPageTitle('Kitap Düzenle');
-    }
-
-    saveBook(formData) {
-        const book = new Book(formData);
-        const validation = book.validate();
-        
-        if (!validation.isValid) {
-            validation.errors.forEach(error => {
-                Helpers.showToast(error, 'error');
+            alert.fadeOut(400, function() {
+                $(this).remove();
             });
-            return;
-        }
-        
-        const success = storageManager.saveBook(book.toJSON());
-        
-        if (success) {
-            Helpers.showToast('Kitap başarıyla eklendi! 🎉', 'success');
-            this.loadPage('home');
-            this.updateSidebarStats();
-        } else {
-            Helpers.showToast('Kitap eklenirken bir hata oluştu', 'error');
-        }
-    }
-
-    updateBook(formData) {
-        const book = new Book(formData);
-        const validation = book.validate();
-        
-        if (!validation.isValid) {
-            validation.errors.forEach(error => {
-                Helpers.showToast(error, 'error');
-            });
-            return;
-        }
-        
-        const success = storageManager.saveBook(book.toJSON());
-        
-        if (success) {
-            Helpers.showToast('Kitap başarıyla güncellendi! ✨', 'success');
-            this.loadPage('home');
-            this.updateSidebarStats();
-        } else {
-            Helpers.showToast('Kitap güncellenirken bir hata oluştu', 'error');
-        }
-    }
-
-    setupGlobalEventListeners() {
-        // Navigation links
-        document.querySelectorAll('.nav-link[data-page]').forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                const page = e.currentTarget.dataset.page;
-                this.loadPage(page);
-                
-                document.getElementById('sidebar')?.classList.remove('active');
-                document.getElementById('sidebar-overlay')?.classList.remove('active');
-            });
-        });
-
-        // Filter links
-        document.querySelectorAll('.filter-link').forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                const filter = e.currentTarget.dataset.filter;
-                this.loadPage('home', { filter });
-            });
-        });
-
-        // Theme toggle
-        document.getElementById('theme-toggle')?.addEventListener('click', () => {
-            this.toggleTheme();
-        });
-
-        // Mobile menu
-        document.getElementById('mobile-menu-btn')?.addEventListener('click', () => {
-            document.getElementById('sidebar')?.classList.add('active');
-            document.getElementById('sidebar-overlay')?.classList.add('active');
-        });
-
-        document.getElementById('sidebar-close')?.addEventListener('click', () => {
-            document.getElementById('sidebar')?.classList.remove('active');
-            document.getElementById('sidebar-overlay')?.classList.remove('active');
-        });
-
-        document.getElementById('sidebar-overlay')?.addEventListener('click', () => {
-            document.getElementById('sidebar')?.classList.remove('active');
-            document.getElementById('sidebar-overlay')?.classList.remove('active');
-        });
-
-        // Page change event
-        window.addEventListener('pageChange', (e) => {
-            this.loadPage(e.detail.page, e.detail.params);
-        });
-
-        // Edit book event
-        window.addEventListener('editBook', (e) => {
-            this.loadPage('edit-book', { book: e.detail.book });
-        });
-
-        // Keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
-            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-                e.preventDefault();
-                document.getElementById('filter-search')?.focus();
-            }
-            
-            if (e.key === 'Escape') {
-                const modal = document.querySelector('.modal-overlay.active');
-                if (modal) {
-                    modal.classList.remove('active');
-                }
-            }
-        });
-
-        // Import/Export
-        this.setupDataManagement();
-    }
-
-    setupDataManagement() {
-        const importInput = document.createElement('input');
-        importInput.type = 'file';
-        importInput.accept = '.json';
-        importInput.style.display = 'none';
-        importInput.id = 'import-file-input';
-        
-        importInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    const result = storageManager.importData(event.target.result);
-                    if (result.success) {
-                        Helpers.showToast(result.message, 'success');
-                        this.loadPage('home');
-                        this.updateSidebarStats();
-                    } else {
-                        Helpers.showToast(result.message, 'error');
-                    }
-                };
-                reader.readAsText(file);
-            }
-            e.target.value = '';
-        });
-        
-        document.body.appendChild(importInput);
-    }
-
-    showBookDetails(bookId) {
-        const books = storageManager.loadBooks();
-        const book = books.find(b => b.id === bookId);
-        
-        if (book) {
-            import('./components/BookItem.js').then(({ default: BookItem }) => {
-                const bookItem = new BookItem(book);
-                document.body.insertAdjacentHTML('beforeend', bookItem.renderDetailModal());
-                bookItem.setupEventListeners((id) => {
-                    window.dispatchEvent(new CustomEvent('editBook', { detail: { book } }));
-                });
-            });
-        }
+        }, 3000);
     }
 }
 
-// Initialize
-document.addEventListener('DOMContentLoaded', () => {
-    window.app = new BookCollectionApp();
-});
+// Initialize the app
+const app = new App();
 
-export default BookCollectionApp;
+// Export for global access if needed
+window.BookApp = app;
