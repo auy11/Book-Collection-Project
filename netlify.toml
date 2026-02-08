@@ -1,0 +1,12 @@
+[build]
+  publish = "."
+  command = "echo 'Build completed'"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[dev]
+  port = 3000
+  autoLaunch = true
