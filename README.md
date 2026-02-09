@@ -120,7 +120,7 @@ npm run dev
 
 ## 🌐 Canlı Demo
 
-**Netlify URL**: [https://your-app-name.netlify.app](https://your-app-name.netlify.app)
+**Netlify URL**: https://shiny-rolypoly-bac3dc.netlify.app
 
 ## 📝 Kullanım
 
