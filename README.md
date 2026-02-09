@@ -83,8 +83,6 @@ Projeyi hemen test edebilmeniz için **100 kitaplık hazır koleksiyon** eklenmi
 - 🔍 Polisiye (Sherlock Holmes, vb.)
 - 📚 Ve daha fazlası...
 
-Detaylı bilgi için `SAMPLE-BOOKS-GUIDE.md` dosyasına bakın.
-
 ## 🚀 Kurulum
 
 ### 1. Projeyi İndirin
@@ -116,11 +114,7 @@ npm run dev
 
 ### Kitap Ekleme
 ![Kitap Ekle](screenshots/add-book.png)
-*Yeni kitap ekleme modal formu*
-
-### Mobil Görünüm
-![Mobil](screenshots/mobile-view.png)
-*Responsive mobil tasarım*
+*Yeni kitap ekleme modal formu.
 
 > **Not**: Ekran görüntülerini `screenshots/` klasörüne ekleyin.
 
